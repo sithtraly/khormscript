@@ -1,12 +1,12 @@
 {
-  "name": "klang",
+  "name": "khormscript",
   "version": "1.0.0",
   "description": "",
   "main": "src/main.js ",
   "scripts": {
-    "start": "node src/main.js src/test/hello.klang && node dist/hello.js"
+    "start": "node src/main.js src/test/hello.ks && node dist/hello.js"
   },
-  "keywords": ["Javascript", "JS", "Khmer Js", "Khmer Javascript", "klang", "Khmer to JS", "Khmer to Javascript", "Khmer tranpiler"],
+  "keywords": ["Javascript", "JS", "Khmer Js", "Khmer Javascript", "ks", "Khmer to JS", "Khmer to Javascript", "Khmer tranpiler", "khormscript", "Khormscript"],
   "author": "",
   "license": "ISC",
   "type": "module"
