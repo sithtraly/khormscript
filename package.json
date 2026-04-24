@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/main.js ",
   "scripts": {
-    "start": "node src/main.js src/test/hello.ks && node dist/hello.js"
+    "start": "node src/main.js src/test/hello.khs && node dist/hello.js"
   },
   "keywords": ["Javascript", "JS", "Khmer Js", "Khmer Javascript", "ks", "Khmer to JS", "Khmer to Javascript", "Khmer tranpiler", "khormscript", "Khormscript"],
   "author": "",

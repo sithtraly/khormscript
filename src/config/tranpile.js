@@ -1,43 +1,56 @@
 import { khmerToJsMap } from "./map.js"
 
 export function tranpile(khmerCode) {
-    // let jsCode = khmerCode
+    const khRange = '\\u1780-\\u17FF\\u200C\\u200D';
 
-    // // Replace keywords using Regex
-    // Object.keys(khmerToJsMap).forEach(key => {
-    //     const regex = new RegExp(key, 'g')
-    //     jsCode = jsCode.replace(regex, khmerToJsMap[key])
-    // })
-
-    // return jsCode
-
-
-    // 1. First, handle the comments specifically so they don't get mangled
-    // Group 1: (បើកសារ[\s\S]*?បិទសារ) -> Multi-line Comment
-    // Group 2: (សារ.*) -> Single-line Comment
-    // Group 3: ("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*') -> Strings (handles escaped quotes too!)
-    // Group 4: ((?:(?!បើកសារ|សារ|"|')[\s\S])+) -> Actual Code
-    // const commentOrCode = /(បើកសារ[\s\S]*?បិទសារ)|(សារ.*)|([\s\S]+?)/g
-    // const commentOrCode = /(បើកសារ[\s\S]*?បិទសារ)|(សារ.*)|((?:(?!បើកសារ|សារ)[\s\S])+)/g
-    const commentOrCode = /(បើកសារ[\s\S]*?បិទសារ)|(សារ.*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|((?:(?!បើកសារ|សារ|"|')[\s\S])+)/g
-    // Sort keys by length (longest first) so "ហើយបើ" is checked before "ហើយ"
+    // Regex to identify different parts of the code
+    const commentOrCode = new RegExp(
+        `((?<![${khRange}])បើកសារ[\\s\\S]*?បិទសារ)|` + // Group 1: Multi-line Comment
+        `((?<![${khRange}])សារ.*)|` +                   // Group 2: Single-line Comment
+        `("(?:\\\\.|[^"\\\\])*"|'(?:\\\\.|[^'\\\\])*'|(?:\`[\\s\\S]*?\`))|` + // Group 3: Strings
+        `(\\/(?:\\\\.|[^\\/\\\\])+\\/[gimyuy]*)|` +   // Group 4: Regex
+        `((?:(?!(?<![${khRange}])បើកសារ|(?<![${khRange}])សារ|"|'|\`|\\/)[\\s\\S])+)`, // Group 5: Actual Code
+        'g'
+    );
+    
     const sortedKeys = Object.keys(khmerToJsMap).sort((a, b) => b.length - a.length);
-    return khmerCode.replace(commentOrCode, (match, multiline, singleline, text, code) => {
-        // If it's a multi-line comment: Replace the markers but NOT the inside content
-        if (multiline) return multiline.replace("បើកសារ", "/*").replace("បិទសារ", "*/")
-        else if (singleline) return singleline.replace("សារ", "//")
-        else if (text) return text
-        else {
-            // If it's actual CODE: Translate keywords using word boundaries (\b doesn't work well for Khmer, 
-            // so we map the specific keys)
-            let translatedCode = code
+    const numberKeys = sortedKeys.filter(k => /[\u17E0-\u17E9]/.test(k));
+    const specialOperators = ["បូក", "ដក", "គុណ", "ចែក", "សំណល់", "ស្មើរ", "ឲ"];
+    const wordKeys = sortedKeys.filter(k => /[\u1780-\u17FF]/.test(k) && !specialOperators.includes(k));
+    const symbolKeys = sortedKeys.filter(k => !/[\u1780-\u17FF]/.test(k) || specialOperators.includes(k));
 
-            for (const key of sortedKeys) {
-                // We only replace if the key is not part of a comment (handled above)
-                translatedCode = translatedCode.split(key).join(khmerToJsMap[key])
-            }
-            return translatedCode
+    function applyTranslation(text) {
+        let translated = text;
+        // 1. Numbers
+        for (const key of numberKeys) {
+            translated = translated.split(key).join(khmerToJsMap[key]);
         }
-        return 0
+        // 2. Symbols
+        for (const key of symbolKeys) {
+            translated = translated.split(key).join(khmerToJsMap[key]);
+        }
+        // 3. Khmer Words (with boundary check)
+        for (const key of wordKeys) {
+            const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const bRegex = new RegExp(`(?<![${khRange}])${escape(key)}(?![${khRange}])`, 'g');
+            translated = translated.replace(bRegex, khmerToJsMap[key]);
+        }
+        return translated;
+    }
+
+    return khmerCode.replace(commentOrCode, (match, multiline, singleline, string, regex, code) => {
+        if (multiline) return multiline.replace("បើកសារ", "/*").replace("បិទសារ", "*/")
+        if (singleline) return singleline.replace("សារ", "//")
+        if (regex) return match
+        
+        // If it's a string, we NOW translate its content (so "ចុច" becomes "click")
+        if (string) {
+            return applyTranslation(string);
+        }
+        
+        if (code) {
+            return applyTranslation(code);
+        }
+        return match
     })
 }
